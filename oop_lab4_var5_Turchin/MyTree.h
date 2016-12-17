@@ -12,10 +12,9 @@ private:
 		Elem * left;			//Переменная для хранения указателя на левый элемент
 		Elem * right;			//Переменная для хранения указателя на правый элемент
 		T * node;				//Переменная для хранения указателя на объект хранения
-		int key;				//Переменная для хранения ключа (целочисленный)
+		const int key;				//Переменная для хранения ключа (целочисленный)
 	public:
 		Elem(int, T*);			//конструктор
-		Elem(const Elem &);		//Конструктор копирования
 		~Elem();				//Деструктор
 		T& getData();			//Метод для работы с данными класса по чтению
 		int getKey();			//Метод для работы с данными класса по чтению
@@ -23,23 +22,19 @@ private:
 		void setRight(Elem *);	//Метод для установки правого узла в дереве (отн.текущего)
 		Elem* getLeft();		//Метод для получения левого узла дерева
 		Elem* getRight();		//Метод для получения правого узла дерева
-		
-	};
+};
 private:
-	
 	int count;					//Переменная для подсчета количества элементов
-
-	void clearTree(Elem *);		//Служебная функция очистки дерева
-	Elem * remove(Elem *, int key, Elem *(& ret));	//служебная функция удаления элемента по ключу
-
 	Elem * rootPtr;				//Переменная для хранения указателя на корень дерева
+	
+	void clearTree(Elem *);		//Служебная рекурсивная функция очистки дерева
+	Elem * remove(Elem *, int key, Elem *(& ret));	//служебная функция удаления элемента по ключу
 	int getMaxLevel(Elem *);	//функция возвращает максимальное значение уровня
 	void showLevel(Elem *, int, int, int);		//Функция выводит на экран уровень дерева
 	void printEmpty(int, int, int);		//печатает пустой слот под узел
 public:
 	MyTree();					//Конструктор по умолчанию
-	MyTree(MyTree *);			//Конструктор копирования
-	~MyTree();					//Деструктор
+	~MyTree();					//Деструктор (в нем вызывается функция очистки дерева)
 	void insert(int key,T *);	//Метод для вставки в дерево
 	T& getByKey(int key);		//Метод для получения объекта хранения из дерева по ключу
 	T& removeByKey(int key);	//Удаление по ключу возвращает объект который хранился по этому ключу
@@ -52,29 +47,15 @@ public:
 ///////////////////////////////////////////////////////////
 //Конструктор (элемента)
 template<class T>
-MyTree<T>::Elem::Elem(int k, T * t)//:key(k), node(t), left(NULL), right(NULL)
+MyTree<T>::Elem::Elem(int k, T * t):key(k), node(t), left(NULL), right(NULL)
 {
-	key = k;
-	node = t;
-	left = NULL;
-	right = NULL;
-}
-
-//конструктор копирования (элемента)
-template<class T>
-MyTree<T>::Elem::Elem(const typename MyTree<T>::Elem &t)
-{
-	key = t.key;
-	node = t.node;
-	left = t.left;
-	right = t.right;
 }
 
 //деструктор (элемента)
 template<class T>
 MyTree<T>::Elem::~Elem()
 {
-	key = 0;
+	//key = 0;
 	node = NULL;
 	left = NULL;
 	right = NULL;
@@ -120,16 +101,19 @@ typename MyTree<T>::Elem * MyTree<T>::Elem::getRight()
 template<class T>
 void MyTree<T>::clearTree(typename MyTree<T>::Elem * currentRoot)
 {
-	MyTree<T>::Elem * start = currentRoot;
-	if (start->getLeft != NULL)
+	//метод рекурсивный
+	MyTree<T>::Elem * start = currentRoot;	//заводим указатель на текущее поддерево
+	if (start->getLeft() != NULL)				//если существует левое поддерево
 	{
-		clearTree(start->getLeft());
+		clearTree(start->getLeft());		//очищаем его
 	}
-	if (start->getRight() != NULL)
+	if (start->getRight() != NULL)			//если существует правое поддерево
 	{
-		clearTree(start->getRight());
+		clearTree(start->getRight());		//очищаем его
 	}
-	delete start;
+	
+	delete start;							//удаляем текущий элемент
+	count--;
 }
 
 template<class T>
@@ -143,22 +127,24 @@ typename MyTree<T>::Elem * MyTree<T>::remove(typename MyTree<T>::Elem * root, in
 		//если переданный ключ больше чем у текущего узла необходимо перейти в правую ветку
 		if (key > root->getKey())				
 		{
-			root->setRight(remove(root->getRight(),key, ret));	//устанавливаем
+			root->setRight(remove(root->getRight(),key, ret));	//устанавливаем правым узлом (у текущ) результат работы этой же функции только для правго поддерева
 		}
+		//если переданный ключ меньше чем у текущего узла необходимо перейти в левую ветку
 		if (key < root->getKey())
 		{
-			root->setLeft(remove(root->getLeft(),key, ret));
+			root->setLeft(remove(root->getLeft(),key, ret));	//устанавливаем правым узлом (у текущ) результат работы этой же функции только для правго поддерева
 		}
+		//если нашли необходимое значение
 		if (key == root->getKey())
 		{
 			//если у текщего нет потомков...
 			if (root->getLeft() == NULL&&root->getRight() == NULL)
 			{
-				ret=root;
-				count--;
-				if (root == rootPtr)
+				ret=root;	//изменяем переданный указатель таким образом чтобы он указывал на найденный
+				count--;	//уменьшаем счетчик
+				if (root == rootPtr)		//проверяем на случай когда удаляется корень (заглавный элемент)
 				{
-					rootPtr = root->getLeft();
+					rootPtr = NULL;	//устанавливаем заглавным элементом левый
 				}
 				//rootPtr = NULL;
 				return NULL;
@@ -166,163 +152,162 @@ typename MyTree<T>::Elem * MyTree<T>::remove(typename MyTree<T>::Elem * root, in
 			//если у текущего один потомок (левый)
 			if (root->getLeft() != NULL&&root->getRight() == NULL)
 			{
-				Elem * tmp = root->getLeft();
-				if (root == rootPtr)
+				Elem * tmp = root->getLeft();	//заводим временную переменную для хранения указателя на левый узел
+				if (root == rootPtr)		//проверяем на случай когда удаляется корень (заглавный элемент)
 				{
-					rootPtr = root->getLeft();
+					rootPtr = root->getLeft();	//устанавливаем указатель на корень дерева на левый элемент
 				}
-				count--;
-				ret=root;
-				return tmp;
+				count--;					//уменьшаем счетчик количества узлов
+				ret=root;					//изменяем переданный указатель таким образом чтобы он указывал на найденный
+				return tmp;					//возвращаем левый узел
 			}
 			//если у текущего элемента один потомок (правый)
 			if (root->getLeft() == NULL&&root->getRight() != NULL)
 			{
-				Elem * tmp = root->getRight();
-				if (root == rootPtr)
+				Elem * tmp = root->getRight();	//заводим временную переменную для хранения указателя на правый узел
+				if (root == rootPtr)			//проверяем на случай когда удаляется корень (заглавный элемент)
 				{
-					rootPtr = root->getRight();
+					rootPtr = root->getRight();	//устанавливаем указатель на корень дерева на правый элемент
 				}
-				count--;
-				ret=root;
-				return tmp;
+				count--;					//уменьшаем счетчик количества узлов
+				ret=root;					//изменяем переданный указатель таким образом чтобы он указывал на найденный
+				return tmp;					//возвращаем левый узел
 			}
 
 			//если у текущего элемента есть два потомка
 			if (root->getLeft() != NULL&&root->getRight() != NULL)
 			{
-				Elem * tmp1 = root->getRight();	//заводим переменную для хранения указателя на предыдущий узел
-				if (tmp1->getLeft() != NULL)
+				//заменяем на самый левый у правого
+				Elem * tmp1 = root->getRight();	//заводим переменную для хранения указателя на правый
+				if (tmp1->getLeft() != NULL)	//еси левый узел существует
 				{
 					Elem * tmp2 = tmp1->getLeft();	//устанавливаем указатель tmp2 на самый левый узел
-					while (tmp2->getLeft() != NULL)
+					while (tmp2->getLeft() != NULL)	//пока левый левый элемент существует проходим до самго низа по левой ветке (самый левый)
 					{
-						tmp1 = tmp2;
-						tmp2 = tmp2->getLeft();		
+						tmp1 = tmp2;				//перемещаем предыдущий на текущий
+						tmp2 = tmp2->getLeft();		//текущий переставляем на следующий левый
 					}
-					if (tmp2->getRight() != NULL)
+					if (tmp2->getRight() != NULL)	//после этого если у этого самого левого элемента есть правый элемент
 					{
-						tmp1->setLeft(tmp2->getRight());
+						tmp1->setLeft(tmp2->getRight());	//устанавливаем этот правый элемент как левый у предыдущего
 					}
 					else
 					{
-						tmp1->setLeft(NULL);
+						tmp1->setLeft(NULL);			//иначе просто убираем ссылку
 					}
-					tmp2->setLeft(root->getLeft());
+					tmp2->setLeft(root->getLeft());		//приводим в соответствие указатели у переставляемого элемента удаляемому
 					tmp2->setRight(root->getRight());
-					if (root == rootPtr)
+					if (root == rootPtr)				//если удалили заглавный элемент
 					{
-						ret = rootPtr;
-						rootPtr = tmp2;
+						ret = rootPtr;					//изменяем переданный указатель таким образом чтобы он указывал на найденный (то есть на корень который мы удаляем)
+						rootPtr = tmp2;					//устанавливаем новым корнем найденное значение (самое левое у правого)
 					}
-					ret = root;
-					count--;
-					return tmp2;
+					ret = root;							//устанавливаем указатель на удаляемый элемент
+					count--;							//уменьшаем счетчик количества узлов
+					return tmp2;						//возвращаем найденный узел
 				}
 				else
 				{
-					tmp1->setLeft(root->getLeft());
-					if (root == rootPtr)
+					//если левого узла нет
+					tmp1->setLeft(root->getLeft());		//приводим в соответствие указатели у правого элемнта с тем который удаляем	
+					if (root == rootPtr)				//если удаляем корень
 					{
-						ret = rootPtr;
-						rootPtr = tmp1;
+						ret = rootPtr;					//изменяем переданный указатель таким образом чтобы он указывал на найденный (то есть на корень который мы удаляем)
+						rootPtr = tmp1;					//устанавливаем новым корнем найденное значение (на правый)
 					}
-					
-					count--;
-					return tmp1;
+					ret = root;							//устанавливаем указатель на удаляемый элемент
+					count--;							//уменьшаем счетчик количества узлов
+					return tmp1;						//возвращаем найденный узел
 				}
-			}
-				
+			}	
 		}
 		return root;
 	}
-	//Не уверен
 }
 
 template<class T>
 int MyTree<T>::getMaxLevel(Elem * root)
 {
 	int level = 1;
-	int maxLeft = 0;
-	int maxRight = 0;
-	int max;
-	if (root->getLeft() != NULL)
+	int maxLeft = 0;	//заводим переменную для хранения значения глубины в левом поддереве
+	int maxRight = 0;	//заводим переменную для хранения значения глубины в правом поддереве
+	int max;			//переменная для хранения максимального из двух глубин
+	if (root->getLeft() != NULL)				//если левое поддерево существует
 	{
-		maxLeft = getMaxLevel(root->getLeft());
+		maxLeft = getMaxLevel(root->getLeft());	//считаем глубину левого поддерева
 	}
-	if (root->getRight() != NULL)
+	if (root->getRight() != NULL)					//если правое поддерево существует
 	{
-		maxRight = getMaxLevel(root->getRight());
+		maxRight = getMaxLevel(root->getRight());	//считаем глубину правого поддерева
 	}
-	max = maxLeft > maxRight ? maxLeft : maxRight;
-	return level+max;
+	max = maxLeft > maxRight ? maxLeft : maxRight;	//записываем максимальное из двух
+	return level+max;								//возвращаем 1 + наибольшая глубина (из левой и правой) 
 }
 
 template<class T>
 void MyTree<T>::showLevel(Elem * root,int maxLevel, int curLvl, int showLvl)
 {
-	if ((curLvl + 1) <= showLvl)
+	if ((curLvl + 1) <= showLvl)	//если текущий уровень увеличенный на 1 меньше или равный чем показываемый
 	{
-		if (root->getLeft() != NULL)
+		if (root->getLeft() != NULL)			//при этом если левое поддерево существует то выводим его
 		{
-			showLevel(root->getLeft(), maxLevel, curLvl + 1, showLvl);
+			showLevel(root->getLeft(), maxLevel, curLvl + 1, showLvl);	
 		}
 		else
 		{
-			int difference = showLvl - curLvl;
-			int x = pow(2, difference-1);
-			printEmpty(x,maxLevel, showLvl);
+			int difference = showLvl - curLvl;	//заводим переменную для хранения разницы между текущим и показываемым уровнями
+			int x = pow(2, difference-1);		//вычисляем сколько пустых узлов необходимо напечатать
+			printEmpty(x,maxLevel, showLvl);	//печатаем пустые узлы
 		}
-		if (root->getRight() != NULL)
+		if (root->getRight() != NULL)			//или если при этом правое существует то выводим его
 		{
 			showLevel(root->getRight(), maxLevel, curLvl + 1, showLvl);
 		}
 		else
 		{
-			int difference = showLvl - curLvl;
-			int x = pow(2, difference - 1);
-			printEmpty(x, maxLevel, showLvl);
+			int difference = showLvl - curLvl;	//заводим переменную для хранения разницы между текущим и показываемым уровнями
+			int x = pow(2, difference - 1);		//вычисляем сколько пустых узлов необходимо напечатать
+			printEmpty(x, maxLevel, showLvl);	//печатаем пустые узлы
 		}
 	}
-	if (curLvl == showLvl)
+	if (curLvl == showLvl)						//если текущий уровень и выводимый совпадают (то есть мы на нужном уровне)
 	{
-		if (showLvl == maxLevel)
+		if (showLvl == maxLevel)				//условия для печати самого нижнего уровня
 		{
-			std::cout <<std::setw(2)<< root->getKey();
-			std::cout << "  ";
+			std::cout <<std::setw(2)<< root->getKey();	//печатаем узел предварительно выдилив под узел поле из двух знаков
+			std::cout << "  ";					//печатаем разделительный пробел из двух пробелов
 		}
 		else
+			//если печатаем не самый нижний уровень
 		{
-			int widtdSpace = pow(2, (maxLevel - showLvl+1))-2;
+			int widtdSpace = pow(2, (maxLevel - showLvl+1))-2;	//вычисляем ширину пустого поля до узла
 			
-			std::cout << std::setw(widtdSpace) << "" << std::setw(2) << root->getKey()
-				<< std::setw(widtdSpace) << "";
-			std::cout << "  ";
+			std::cout << std::setw(widtdSpace) << "" << std::setw(2) << root->getKey()	//печатаем пустое поле, печатаем значение key у узла
+				<< std::setw(widtdSpace) << "";											//печатаем после этого пустое поле
+			std::cout << "  ";															//печатаем разделительный пробел
 		}
-		/*std::cout.setw(2);
-		std::cout << root->key << "  ";*/
 	}
 }
 
 template<class T>
 void MyTree<T>::printEmpty(int count, int maxLvl, int showLvl)
 {
-	if (showLvl == maxLvl)
+	if (showLvl == maxLvl)					//если печатаем самый нижний уровень
 	{
-		for (int i = 0; i < count; i++)
+		for (int i = 0; i < count; i++)		//печаем столько раз сколько указано в параметрах функции
 		{
-			std::cout<<std::setw(2) << "";
-			std::cout << "  ";
+			std::cout<<std::setw(2) << "";	//так как нижнее поле разделено только разделительными пробелами выделяем место под пустой узел
+			std::cout << "  ";				//печатаем "пробел"
 		}
 	}
 	else
 	{
-		for (int i = 0; i < count; i++)
+		for (int i = 0; i < count; i++)		//печаем столько раз сколько указано в параметрах функции
 		{
-			int widthSpace = pow(2, (maxLvl - showLvl + 1)) - 2;
-			std::cout << std::setw(widthSpace)<<""<<std::setw(2) << ""
-				<<std::setw(widthSpace)<<"";
-			std::cout << "  ";
+			int widthSpace = pow(2, (maxLvl - showLvl + 1)) - 2;	//вычисляем ширину пустого поля
+			std::cout << std::setw(widthSpace)<<""<<std::setw(2) << ""	//печатаем пустое поле печатаем место под пустое значение
+				<<std::setw(widthSpace)<<"";						//печатаем пустое поле после
+			std::cout << "  ";										//печатаем "пробел"
 		}
 	}
 }
@@ -333,15 +318,14 @@ MyTree<T>::MyTree(): rootPtr(NULL), count(0)
 }
 
 template<class T>
-MyTree<T>::MyTree(MyTree *)
-{
-	//MyTree<T>::Elem *tmp = new MyTree<T>::Elem();
-	//не реализовано
-}
-
-template<class T>
 MyTree<T>::~MyTree()
 {
+	if (count > 0)
+	{
+		clearTree(rootPtr);
+		rootPtr = NULL;
+		count = 0;
+	}
 }
 
 template<class T>
@@ -394,40 +378,43 @@ void MyTree<T>::insert(int key, T * t)
 template<class T>
 T & MyTree<T>::getByKey(int key)
 {
-	typename MyTree<T>::Elem *start = rootPtr;
-	while (true)
+	Elem *start = rootPtr;					//инициализируем стартовое значение указателя на поддерево
+	while (true)							
 	{
-		int tmpKey = start->getKey();
+		int tmpKey = start->getKey();		//заводим переменную под хранение значения ключа
 
-		if (key == tmpKey)
+		if (key == tmpKey)					//если переданный ключ совпал 
 		{
-			return	start->getData();
+			return	start->getData();		//возвращаем содержимое
 		}
-		else if (key > tmpKey)
+		else if (key > tmpKey)				//иначе если переданный ключ больше
 		{
-			if (start->getRight() != NULL)
-				start = start->getRight();
+			if (start->getRight() != NULL)	//если существует правая ветка
+				start = start->getRight();	//перемещаемся в правую ветку
 			else
-				break;
+				break;						//если не существует правой ветки то обрываем цикл
 		}
-		else //(key < tmpKey)
+		else //если передаваемый ключ меньше чем чем текущий (key < tmpKey)
 		{
-			if (start->getLeft() != NULL)
-				start = start->getLeft();
+			if (start->getLeft() != NULL)	//если существует левая ветка
+				start = start->getLeft();	//перемещаемся в левую ветку
 			else
-				break;
+				break;						//если левой ветки не существует прерываем цикл
 		}
 
 	}
-	//return NULL;
+	return NULL;							//во всех случаях когда не нашли необходимого значения возвращаем NULL
 }
 
 template<class T>
 T & MyTree<T>::removeByKey(int key)
 {
-	Elem * tmp=NULL;
-	this->remove(rootPtr, key, tmp);
-	return tmp->getData();
+	Elem * tmp;							//заводим переменную для хранения значения удаляемого поля
+	this->remove(rootPtr, key, tmp);	//вызываем рекурсивную функцию удаления по ключу
+	T* ret;								//заводим переменную для хранения возвращаемого значения
+	ret = &(tmp->getData());			//устанавливаем возвращаемое значение
+	delete tmp;							//освобождаем память из под удаленного поля
+	return *ret;						//возвращаем результат
 }
 
 template<class T>
@@ -439,12 +426,19 @@ inline int MyTree<T>::getCount()
 template<class T>
 void MyTree<T>::showKey()
 {
-	int maxLevel = getMaxLevel(rootPtr);
-	for (int i = 1; i <= maxLevel; i++)
+	if (count == 0)	//если дерево пустое прерываем выполнение функции
 	{
-		//int alreadyPrint = 0;
-		showLevel(rootPtr, maxLevel, 1, i);
-		std::cout << "\n";
+		std::cout<<"Tree is EMPTY!\n";
+	}
+	else
+	{
+		int maxLevel = getMaxLevel(rootPtr);
+		for (int i = 1; i <= maxLevel; i++)
+		{
+			//int alreadyPrint = 0;
+			showLevel(rootPtr, maxLevel, 1, i);
+			std::cout << "\n";
+		}
 	}
 }
 
